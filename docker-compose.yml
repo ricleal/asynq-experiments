@@ -1,0 +1,18 @@
+services:
+  redis:
+    image: redis:7.2.4-alpine
+    container_name: redis_server
+    env_file:
+      - ./.env
+    restart: always
+    ports:
+      - 6379:6379
+    command: redis-server --save 60 1 --loglevel ${REDIS_LOG_LEVEL}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 30s
+      retries: 50
+    volumes:
+      - ./data:/var/lib/redis/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
