@@ -1,0 +1,4 @@
+SET schedule:notification:email "* * * * *"
+SET schedule:notification:sms "@every 10s"
+SET schedule:notification:push "@every 5s"
+KEYS schedule:*

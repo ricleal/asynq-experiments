@@ -17,3 +17,6 @@ https://github.com/hibiken/asynq/wiki/Periodic-Tasks
 Add and remove tasks: Dynamic Periodic Task
 
 https://github.com/hibiken/asynq/wiki/Dynamic-Periodic-Task
+
+- use redis to store pairs `<task-type> -> <cron-spec>`
+- on a regular basis `GetConfigs()` and update the scheduler
