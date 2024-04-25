@@ -35,31 +35,42 @@ func (p *PeriodicTasks) GetConfigs() ([]*asynq.PeriodicTaskConfig, error) {
 	}
 
 	var periodicTaskConfig []*asynq.PeriodicTaskConfig
-	for _, config := range configs {
-		var task *asynq.Task
-		var err error
+	for config, ids := range configs {
+		var taskList []*asynq.Task
 		switch config.TaskType {
 		case tasks.TypeEventStart:
-			task, err = tasks.BuildEventStart()
+			for _, id := range ids {
+				task, err := tasks.BuildEventStart(id)
+				if err != nil {
+					p.log.Error("could not create start task", tint.Err(err))
+					continue
+				}
+				taskList = append(taskList, task)
+			}
 		case tasks.TypeEventStop:
-			task, err = tasks.BuildEventStop()
+			for _, id := range ids {
+				task, err := tasks.BuildEventStop(id)
+				if err != nil {
+					p.log.Error("could not create stop task", tint.Err(err))
+					continue
+				}
+				taskList = append(taskList, task)
+			}
 		default:
 			p.log.Warn("unknown task type", slog.String("task_type", config.TaskType))
 			continue
 		}
-		if err != nil {
-			p.log.Error("could not create task", tint.Err(err))
-			continue
-		}
 
 		p.log.Info("adding task", slog.String("task_type", config.TaskType), slog.String("cron_spec", config.CronSpec))
-		periodicTaskConfig = append(periodicTaskConfig, &asynq.PeriodicTaskConfig{
-			Cronspec: config.CronSpec,
-			Task:     task,
-			Opts: []asynq.Option{
-				asynq.Queue("cron"),
-			},
-		})
+		for _, task := range taskList {
+			periodicTaskConfig = append(periodicTaskConfig, &asynq.PeriodicTaskConfig{
+				Cronspec: config.CronSpec,
+				Task:     task,
+				Opts: []asynq.Option{
+					asynq.Queue("cron"),
+				},
+			})
+		}
 	}
 
 	return periodicTaskConfig, nil

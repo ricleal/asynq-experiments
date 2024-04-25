@@ -18,7 +18,7 @@ func TestGetScheduleConfigs(t *testing.T) {
 	if len(configs) == 0 {
 		t.Fatalf("no schedule configs found")
 	}
-	for _, config := range configs {
-		t.Log(config)
+	for config, ids := range configs {
+		t.Logf("config: %v, ids: %v", config, ids)
 	}
 }

@@ -29,7 +29,7 @@ var (
 	once sync.Once
 )
 
-func GetScheduleConfigs(ctx context.Context) ([]ScheduleConfig, error) {
+func GetScheduleConfigs(ctx context.Context) (map[ScheduleConfig][]string, error) {
 	once.Do(func() {
 		rdb = redis.NewClient(&redis.Options{
 			Addr:     redisAddr,
@@ -43,18 +43,27 @@ func GetScheduleConfigs(ctx context.Context) ([]ScheduleConfig, error) {
 		return nil, fmt.Errorf("rdb.Keys failed: %v", err)
 	}
 
-	var configs []ScheduleConfig
+	// map indexed by a config to a list of ids
+	configs := make(map[ScheduleConfig][]string)
 	for _, key := range keys {
 		value, err := rdb.Get(ctx, key).Result()
 		if err != nil {
 			return nil, fmt.Errorf("rdb.Get failed: %v", err)
 		}
 		parts := strings.Split(key, ":")
-		if len(parts) != 3 {
+		if len(parts) < 3 {
 			return nil, fmt.Errorf("invalid key: %s", key)
 		}
-		taskType := strings.Join(parts[1:], ":")
-		configs = append(configs, ScheduleConfig{CronSpec: value, TaskType: taskType})
+		taskType := strings.Join(parts[1:len(parts)-1], ":")
+		id := parts[len(parts)-1]
+		conf := ScheduleConfig{CronSpec: value, TaskType: taskType}
+		// if the config is not in the map, add it
+		if _, ok := configs[conf]; !ok {
+			configs[conf] = []string{id}
+			continue
+		}
+		// if the config is in the map, append the id
+		configs[conf] = append(configs[conf], id)
 	}
 	return configs, nil
 }

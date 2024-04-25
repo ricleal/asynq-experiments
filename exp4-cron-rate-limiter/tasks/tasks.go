@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 	"github.com/lmittmann/tint"
 	"golang.org/x/time/rate"
@@ -51,11 +50,11 @@ const (
 )
 
 type EventStart struct {
-	EventID uuid.UUID
+	EventID string
 }
 
 type EventStop struct {
-	EventID uuid.UUID
+	EventID string
 }
 
 type EventAWS struct {
@@ -64,16 +63,16 @@ type EventAWS struct {
 
 // Task builders
 
-func BuildEventStart() (*asynq.Task, error) {
-	payload, err := json.Marshal(EventStart{EventID: uuid.New()})
+func BuildEventStart(eventID string) (*asynq.Task, error) {
+	payload, err := json.Marshal(EventStart{EventID: eventID})
 	if err != nil {
 		return nil, fmt.Errorf("json.Marshal failed: %v", err)
 	}
 	return asynq.NewTask(TypeEventStart, payload), nil
 }
 
-func BuildEventStop() (*asynq.Task, error) {
-	payload, err := json.Marshal(EventStop{EventID: uuid.New()})
+func BuildEventStop(eventID string) (*asynq.Task, error) {
+	payload, err := json.Marshal(EventStop{EventID: eventID})
 	if err != nil {
 		return nil, fmt.Errorf("json.Marshal failed: %v", err)
 	}
@@ -106,10 +105,10 @@ func (p *ProcessStartEvent) ProcessTask(ctx context.Context, t *asynq.Task) erro
 	if err := json.Unmarshal(t.Payload(), &e); err != nil {
 		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
 	}
-	p.Log.Info("✅ Enqueueing AWS event", slog.String("event_id", e.EventID.String()))
+	p.Log.Info("✅ Enqueueing AWS event", slog.String("event_id", e.EventID))
 
 	// Enqueue AWS event
-	task, err := BuildEventAWS("arn:aws:sns:us-east-1:123456789012:start-event")
+	task, err := BuildEventAWS("arn:aws:sns:us-east-1:123456789012:start-event/" + e.EventID)
 	if err != nil {
 		return fmt.Errorf("BuildEventAWS failed: %v", err)
 	}
@@ -141,10 +140,10 @@ func (p *ProcessStopEvent) ProcessTask(ctx context.Context, t *asynq.Task) error
 	if err := json.Unmarshal(t.Payload(), &e); err != nil {
 		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
 	}
-	p.Log.Info("🚫 Enqueueing AWS event", slog.String("event_id", e.EventID.String()))
+	p.Log.Info("🚫 Enqueueing AWS event", slog.String("event_id", e.EventID))
 
 	// Enqueue AWS event
-	task, err := BuildEventAWS("arn:aws:sns:us-east-1:123456789012:stop-event")
+	task, err := BuildEventAWS("arn:aws:sns:us-east-1:123456789012:stop-event/" + e.EventID)
 	if err != nil {
 		return fmt.Errorf("BuildEventAWS failed: %v", err)
 	}
@@ -167,8 +166,8 @@ type ProcessEventAWS struct {
 func NewProcessEventAWS(log *slog.Logger) *ProcessEventAWS {
 	return &ProcessEventAWS{
 		Log: log.With(slog.String("event_type", TypeEventAWS)),
-		// Rate is 1 events/sec and permits burst of at most 1 events.
-		limiter: rate.NewLimiter(1, 1),
+		// Rate is 5 events/sec and permits burst of at most 10 events.
+		limiter: rate.NewLimiter(5, 10),
 	}
 }
 

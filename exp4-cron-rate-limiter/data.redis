@@ -1,5 +1,21 @@
-SET schedule:event:start "@every 1s"
-SET schedule:event:stop "@every 1s"
-KEYS schedule:*
-GET schedule:event:start
-GET schedule:event:stop
+SET schedule:event:start:0 "@every 5s"
+SET schedule:event:start:1 "@every 5s"
+SET schedule:event:start:2 "@every 5s"
+SET schedule:event:start:3 "@every 5s"
+SET schedule:event:start:4 "@every 5s"
+SET schedule:event:start:5 "@every 5s"
+SET schedule:event:start:6 "@every 5s"
+SET schedule:event:start:7 "@every 5s"
+SET schedule:event:start:8 "@every 5s"
+SET schedule:event:start:9 "@every 5s"
+
+SET schedule:event:stop:0 "@every 5s"
+SET schedule:event:stop:1 "@every 5s"
+SET schedule:event:stop:2 "@every 5s"
+SET schedule:event:stop:3 "@every 5s"
+SET schedule:event:stop:4 "@every 5s"
+SET schedule:event:stop:5 "@every 5s"
+SET schedule:event:stop:6 "@every 5s"
+SET schedule:event:stop:7 "@every 5s"
+SET schedule:event:stop:8 "@every 5s"
+SET schedule:event:stop:9 "@every 5s"
