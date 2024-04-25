@@ -4,15 +4,18 @@ services:
     container_name: redis_server
     env_file:
       - ./.env
+    environment:
+      - REDIS_LOG_LEVEL=${REDIS_LOG_LEVEL:-notice}
     restart: always
     ports:
       - 6379:6379
-    command: redis-server --save 60 1 --loglevel ${REDIS_LOG_LEVEL}
+    # Redis automatically dump the dataset to disk every 30 seconds if at least 1 key changed:
+    command: redis-server --save 30 1 --loglevel ${REDIS_LOG_LEVEL}
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 30s
       retries: 50
     volumes:
-      - ./data:/var/lib/redis/data
+      - ./data:/data
       - ./redis.conf:/usr/local/etc/redis/redis.conf

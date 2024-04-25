@@ -1,0 +1,5 @@
+SET schedule:event:start "@every 1s"
+SET schedule:event:stop "@every 1s"
+KEYS schedule:*
+GET schedule:event:start
+GET schedule:event:stop

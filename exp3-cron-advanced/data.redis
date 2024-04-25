@@ -1,4 +1,7 @@
 SET schedule:notification:email "* * * * *"
-SET schedule:notification:sms "@every 10s"
-SET schedule:notification:push "@every 5s"
+SET schedule:notification:sms "@every 90s"
+SET schedule:notification:push "@every 1s"
 KEYS schedule:*
+GET schedule:notification:email
+GET schedule:notification:sms
+GET schedule:notification:push
