@@ -34,45 +34,40 @@ func (p *PeriodicTasks) GetConfigs() ([]*asynq.PeriodicTaskConfig, error) {
 		return nil, fmt.Errorf("db.GetScheduleConfigs failed: %v", err)
 	}
 
+	p.log.Debug("GetConfigs called", slog.Any("configs", configs))
+
 	var periodicTaskConfig []*asynq.PeriodicTaskConfig
 	for config, ids := range configs {
-		var taskList []*asynq.Task
+		var err error
+		var task *asynq.Task
 		switch config.TaskType {
 		case tasks.TypeEventStart:
-			for _, id := range ids {
-				task, err := tasks.BuildEventStart(id)
-				if err != nil {
-					p.log.Error("could not create start task", tint.Err(err))
-					continue
-				}
-				taskList = append(taskList, task)
+			task, err = tasks.BuildEventStart(ids)
+			if err != nil {
+				p.log.Error("could not create start task", tint.Err(err))
+				continue
 			}
 		case tasks.TypeEventStop:
-			for _, id := range ids {
-				task, err := tasks.BuildEventStop(id)
-				if err != nil {
-					p.log.Error("could not create stop task", tint.Err(err))
-					continue
-				}
-				taskList = append(taskList, task)
+			task, err = tasks.BuildEventStop(ids)
+			if err != nil {
+				p.log.Error("could not create stop task", tint.Err(err))
+				continue
 			}
 		default:
 			p.log.Warn("unknown task type", slog.String("task_type", config.TaskType))
 			continue
 		}
 
-		p.log.Info("adding task", slog.String("task_type", config.TaskType), slog.String("cron_spec", config.CronSpec))
-		for _, task := range taskList {
-			periodicTaskConfig = append(periodicTaskConfig, &asynq.PeriodicTaskConfig{
-				Cronspec: config.CronSpec,
-				Task:     task,
-				Opts: []asynq.Option{
-					asynq.Queue("cron"),
-				},
-			})
-		}
+		p.log.Info("adding task", slog.String("task_type", config.TaskType),
+			slog.String("cron_spec", config.CronSpec), slog.Any("ids", ids))
+		periodicTaskConfig = append(periodicTaskConfig, &asynq.PeriodicTaskConfig{
+			Cronspec: config.CronSpec,
+			Task:     task,
+			Opts: []asynq.Option{
+				asynq.Queue("cron"), // All cron tasks go to the "cron" queue (event start and stop)
+			},
+		})
 	}
-
 	return periodicTaskConfig, nil
 }
 
@@ -89,8 +84,8 @@ func main() {
 	manager, err := asynq.NewPeriodicTaskManager(
 		asynq.PeriodicTaskManagerOpts{
 			RedisConnOpt:               asynq.RedisClientOpt{Addr: "localhost:6379"},
-			PeriodicTaskConfigProvider: provider,         // this provider object is the interface to your config source
-			SyncInterval:               10 * time.Second, // this field specifies how often sync should happen
+			PeriodicTaskConfigProvider: provider,         // struct that must implement the GetConfigs() method
+			SyncInterval:               10 * time.Second, // how often the GetConfigs() should be called
 			SchedulerOpts: &asynq.SchedulerOpts{
 				Location: loc,
 				LogLevel: asynq.WarnLevel,

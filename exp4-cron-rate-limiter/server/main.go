@@ -31,7 +31,6 @@ func main() {
 				"cron": 5,
 			},
 			LogLevel: asynq.WarnLevel,
-			//
 			// If error is due to rate limit, don't count the error as a failure.
 			IsFailure:      func(err error) bool { return !tasks.IsRateLimitError(err) },
 			RetryDelayFunc: retryDelay,
